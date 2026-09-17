@@ -26,7 +26,7 @@ RESPONSE_FORMAT = os.getenv("RESPONSE_FORMAT", "json_schema").lower()
 # MLflow tracing config.
 TRACING_ENABLED = os.getenv("TRACING_ENABLED", "true").lower() == "true"
 MLFLOW_EXPERIMENT = os.getenv(
-    "MLFLOW_EXPERIMENT", "/Users/jai.singh@alchemer.com/llm-qa-app-traces"
+    "MLFLOW_EXPERIMENT", "/Users/stephanie.ross@alchemer.com/steph-test-lm-qa-app-traces"
 )
 
 # Default survey passed to the model when the caller doesn't supply one.
@@ -250,9 +250,11 @@ class ChatResponse(BaseModel):
 class GenerateRequest(BaseModel):
     description: str = Field(..., min_length=1)
     survey_json: Optional[str] = None
+    session_id: Optional[str] = None
 
 
 class GenerateResponse(BaseModel):
+    session_id: str
     plan: Optional[Dict[str, Any]] = None
     reply: str
     operations: List[Dict[str, Any]]
@@ -312,24 +314,28 @@ def chat(req: ChatRequest) -> ChatResponse:
 
 @app.post("/generate", response_model=GenerateResponse)
 def generate(req: GenerateRequest) -> GenerateResponse:
+    session_id = req.session_id or str(uuid.uuid4())
     survey_json = req.survey_json if req.survey_json is not None else DEFAULT_SURVEY_JSON
 
     user_turn = prompts.GENERATE_USER_TURN.replace(
         "«CURRENT SURVEY (JSON, one empty page)»", survey_json
     ).replace("«the survey description»", req.description)
 
-    messages = [
-        {"role": "system", "content": prompts.GENERATE_SYSTEM},
-        {"role": "user", "content": user_turn},
-    ]
+    history = store.get_history(session_id)
+    messages = [{"role": "system", "content": prompts.GENERATE_SYSTEM}]
+    messages.extend(history)
+    messages.append({"role": "user", "content": user_turn})
 
-    parsed, _ = _run(
+    parsed, raw = _run(
         "generate",
         messages,
         GENERATE_SCHEMA,
-        {"mode": "generate", "endpoint": SERVING_ENDPOINT},
+        {"mode": "generate", "session_id": session_id, "endpoint": SERVING_ENDPOINT},
     )
+    store.append(session_id, user_turn, raw)
+
     return GenerateResponse(
+        session_id=session_id,
         plan=parsed.get("plan"),
         reply=str(parsed.get("reply", "")),
         operations=parsed.get("operations", []) or [],

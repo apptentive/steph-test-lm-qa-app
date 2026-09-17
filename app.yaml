@@ -22,4 +22,4 @@ env:
   - name: TRACING_ENABLED
     value: "true"
   - name: MLFLOW_EXPERIMENT
-    value: "/Users/jai.singh@alchemer.com/llm-qa-app-traces"
+    value: "/Users/stephanie.ross@alchemer.com/steph-test-lm-qa-app-traces"
