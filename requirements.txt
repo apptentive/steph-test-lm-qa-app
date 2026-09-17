@@ -1,0 +1,6 @@
+databricks-sdk
+openai
+fastapi
+uvicorn
+mlflow
+opentelemetry-exporter-otlp-proto-grpc

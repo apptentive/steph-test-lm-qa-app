@@ -1,0 +1,25 @@
+command:
+  - "uvicorn"
+  - "app:app"
+  - "--host"
+  - "0.0.0.0"
+  - "--port"
+  - "8000"
+
+env:
+  - name: SERVING_ENDPOINT
+    value: "databricks-claude-sonnet-4-5"
+  - name: RESPONSE_FORMAT
+    value: "json_schema"
+  - name: MAX_HISTORY_TURNS
+    value: "10"
+  - name: SESSION_TTL_SECONDS
+    value: "3600"
+  - name: MAX_TOKENS
+    value: "8192"
+  - name: TEMPERATURE
+    value: "0.3"
+  - name: TRACING_ENABLED
+    value: "true"
+  - name: MLFLOW_EXPERIMENT
+    value: "/Users/jai.singh@alchemer.com/llm-qa-app-traces"
