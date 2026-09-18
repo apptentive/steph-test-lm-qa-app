@@ -121,6 +121,10 @@ def _schema(name: str, extra_props: Dict[str, Any]) -> Dict[str, Any]:
     props: Dict[str, Any] = {
         "reply": {"type": "string"},
         "operations": {"type": "array", "items": {"type": "object"}},
+        # Optional quick-reply suggestions for the turn's "reply" - short, clickable
+        # answers a user could send as-is. Omitted or empty when there's nothing
+        # sensible to suggest (e.g. a turn that just built something).
+        "chips": {"type": "array", "items": {"type": "string"}},
     }
     props.update(extra_props)
     return {
@@ -166,6 +170,17 @@ def _complete(messages: List[Dict[str, str]], schema: Optional[Dict[str, Any]] =
     except Exception as exc:  # surface upstream errors to the caller
         raise HTTPException(status_code=502, detail=f"Model request failed: {exc}") from exc
     return completion.choices[0].message.content or ""
+
+
+MAX_CHIPS = 4
+
+
+def _clean_chips(raw: Any) -> List[str]:
+    """Coerce the model's chips into a short list of non-empty strings."""
+    if not isinstance(raw, list):
+        return []
+    cleaned = [str(item).strip() for item in raw if isinstance(item, (str, int, float))]
+    return [item for item in cleaned if item][:MAX_CHIPS]
 
 
 def _parse_json(text: str) -> Dict[str, Any]:
@@ -245,6 +260,7 @@ class ChatResponse(BaseModel):
     session_id: str
     reply: str
     operations: List[Dict[str, Any]]
+    chips: List[str] = []
 
 
 class GenerateRequest(BaseModel):
@@ -258,6 +274,7 @@ class GenerateResponse(BaseModel):
     plan: Optional[Dict[str, Any]] = None
     reply: str
     operations: List[Dict[str, Any]]
+    chips: List[str] = []
 
 
 class ResetRequest(BaseModel):
@@ -309,6 +326,7 @@ def chat(req: ChatRequest) -> ChatResponse:
         session_id=session_id,
         reply=str(parsed.get("reply", "")),
         operations=parsed.get("operations", []) or [],
+        chips=_clean_chips(parsed.get("chips")),
     )
 
 
@@ -339,6 +357,7 @@ def generate(req: GenerateRequest) -> GenerateResponse:
         plan=parsed.get("plan"),
         reply=str(parsed.get("reply", "")),
         operations=parsed.get("operations", []) or [],
+        chips=_clean_chips(parsed.get("chips")),
     )
 
 

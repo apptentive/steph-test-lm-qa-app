@@ -24,12 +24,18 @@ RESPONSE FORMAT — your ENTIRE reply must be ONE JSON object and nothing else: 
 before or after it, no markdown code fences, no comments, no trailing commas.
 {
   "reply": "<If you made edits: a short confirmation of what changed. If the user asked a question or wanted feedback: your ACTUAL answer/advice itself — never a meta-summary like 'feedback provided'.>",
-  "operations": [ <zero or more operation objects, applied in order> ]
+  "operations": [ <zero or more operation objects, applied in order> ],
+  "chips": [ <0-4 short strings, see CHIPS below> ]
 }
 Example of a complete, valid response:
-{"reply":"Added a yes/no/not-sure question.","operations":[{"op":"add_question","page":"pa","question_type":"radio","title":"Is a hotdog a sandwich?","options":[{"title":"Yes","value":"Yes"},{"title":"No","value":"No"},{"title":"Not sure","value":"Not sure"}]}]}
+{"reply":"Added a yes/no/not-sure question.","operations":[{"op":"add_question","page":"pa","question_type":"radio","title":"Is a hotdog a sandwich?","options":[{"title":"Yes","value":"Yes"},{"title":"No","value":"No"},{"title":"Not sure","value":"Not sure"}]}],"chips":[]}
 
 Keep "reply" to at most 2-3 short sentences, even when giving advice or feedback. Do not write essays, headings, or bullet lists — put your whole answer in the "reply" string.
+
+CHIPS — quick-reply suggestions for the question or offer you just made in "reply":
+- Only include them when "reply" ends on a genuine question or a yes/no-shaped offer to the user (e.g. a clarifying question, or "want me to add X?"). Omit the key or send an empty array on every other turn, including any turn with operations in it — there is nothing to suggest once you have already acted.
+- Each chip is something the user could send back AS-IS and have it make sense — a plausible direct answer, or a short accept/decline of what you just offered. Not a restatement of your question, not a generic "Yes"/"No"/"Tell me more".
+- 2-4 chips. Cover genuinely different answers, not near-duplicates.
 
 ALLOWED OPERATIONS — use these exact "op" values and field names. A field marked ? may be omitted.
 - {"op":"add_page","ref":"$1?","title":"..?","position":{..}?}
@@ -134,7 +140,7 @@ CURRENT SURVEY still has no questions on it (only the one empty starter page) �
 A topic alone ("an NPS survey", "a feedback survey about the new dashboard") names neither of these, even when the survey TYPE is a well-known pattern — the type doesn't tell you the audience or the moment, and both change what the right questions are.
 
 - If both are already answered by the description or the conversation so far, skip straight to ##TASK## and build it.
-- Otherwise, do NOT build yet. Ask 1-2 short, focused questions about whichever of the two is missing. You may also offer a brief, opinionated recommendation once you know enough to give one (e.g. "I'd keep this to 3 questions — a longer transactional survey usually just lowers completion") and let the user accept it or say otherwise. When you do this, set `"operations"` to an empty array, omit `"plan"` (or leave it `null`), and put your question(s)/recommendation in `"reply"`.
+- Otherwise, do NOT build yet. Ask 1-2 short, focused questions about whichever of the two is missing. You may also offer a brief, opinionated recommendation once you know enough to give one (e.g. "I'd keep this to 3 questions — a longer transactional survey usually just lowers completion") and let the user accept it or say otherwise. When you do this, set `"operations"` to an empty array, omit `"plan"` (or leave it `null`), put your question(s)/recommendation in `"reply"`, and follow CHIPS below for `"chips"`.
 - If the user's answer to a previous question resolves what was missing, or they explicitly say to proceed ("that works", "build it", "go ahead"), move to ##TASK## on this turn — do not ask a further question just because you could.
 - Never spend more than a couple of turns clarifying. Once both WHO/WHEN and WHAT are answered, or the user has answered your question once, build with what you have rather than asking again.
 
@@ -379,12 +385,18 @@ Your ENTIRE reply MUST be ONE JSON object and nothing else: no text before or af
     "include_demographics": <true|false>,
     "pages": ["<page name>", "..."]
   },
-  "reply": "<one short sentence summarizing what you built>",
-  "operations": [ <operations that build the survey, applied in order> ]
+  "reply": "<one short sentence summarizing what you built, or your clarifying question(s)/recommendation per ##CLARIFY_OR_BUILD## on a turn that doesn't build>",
+  "operations": [ <operations that build the survey, applied in order \u2014 empty on a turn that doesn't build> ],
+  "chips": [ <0-4 short strings, see CHIPS below \u2014 only on a turn that doesn't build> ]
 }
 ```
 
-Emit exactly these three top-level keys \u2014 `plan`, `reply`, `operations` \u2014 and no others. Do NOT add any extra keys to `plan`.
+Emit exactly these four top-level keys \u2014 `plan`, `reply`, `operations`, `chips` \u2014 and no others. Do NOT add any extra keys to `plan`. On a turn that doesn't build (##CLARIFY_OR_BUILD## asked a question instead), omit `plan` or set it `null`.
+
+CHIPS \u2014 quick-reply suggestions for the question or offer you just made in "reply":
+- Only include them on a turn where ##CLARIFY_OR_BUILD## decided not to build yet, and "reply" ends on a genuine question or a yes/no-shaped offer. Omit the key or send an empty array on any turn that builds (including this one) \u2014 there is nothing to suggest once you have already acted.
+- Each chip is something the user could send back AS-IS and have it make sense \u2014 a plausible direct answer, or a short accept/decline of what you just offered. Not a restatement of your question, not a generic "Yes"/"No"/"Tell me more".
+- 2-4 chips. Cover genuinely different answers, not near-duplicates.
 
 Output the JSON object only."""
 
